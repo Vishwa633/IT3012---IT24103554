@@ -17,14 +17,42 @@ class GridHuntGame:
         self.score = 0
         self.steps = 0
 
-    def get_percept(self, agent) -> dict:
-        return {
-            'agent_pos': list(self.agent_pos),
-            'smells_food': tuple(self.agent_pos) in self.food_positions,
-            'hit_wall': tuple(self.agent_pos) in self.walls,
-            'score': self.score,
-            'remaining_food': len(self.food_positions)
-        }
+    def get_percept(self) -> dict:
+    x, y = self.agent_pos
+
+    # Find the cell directly in front of the agent
+    front_x, front_y = x, y
+
+    if self.direction == "Up":
+        front_y += 1
+    elif self.direction == "Down":
+        front_y -= 1
+    elif self.direction == "Left":
+        front_x -= 1
+    elif self.direction == "Right":
+        front_x += 1
+
+    # Check whether the cell in front is outside the grid
+    # or contains a wall
+    wall_ahead = (
+        front_x < 0 or
+        front_x >= self.width or
+        front_y < 0 or
+        front_y >= self.height or
+        (front_x, front_y) in self.walls
+    )
+
+    # Check food in the adjacent cell
+    food_ahead = (front_x, front_y) in self.food_positions
+
+    # Check toxic trap in the adjacent cell
+    toxin_ahead = (front_x, front_y) in self.toxic_traps
+
+    return {
+        'wall_ahead': wall_ahead,
+        'food_ahead': food_ahead,
+        'toxin_ahead': toxin_ahead
+    }
 
     def execute_action(self, agent, action: str):
         self.steps += 1
@@ -53,3 +81,55 @@ class GridHuntGame:
 
     def is_done(self) -> bool:
         return len(self.food_positions) == 0 or self.steps >= 20
+
+
+class SimpleReflexAgent:
+    def sense_and_act(self, percept):
+        # IF food is ahead THEN move forward
+        if percept['food_ahead']:
+            return "Right"
+
+        # IF there is a wall ahead THEN turn left
+        if percept['wall_ahead']:
+            return "Left"
+
+        # ELSE move forward
+        return "Right"    
+
+
+class ModelBasedAgent:
+    def __init__(self):
+        self.visited_cells = set()
+        self.last_action = None
+
+    def sense_and_act(self, percept):
+        # Update internal state
+        current_state = (
+            percept['wall_ahead'],
+            percept['food_ahead'],
+            percept['toxin_ahead']
+        )
+
+        self.visited_cells.add(current_state)
+
+        # IF food is ahead THEN move forward
+        if percept['food_ahead']:
+            action = "Right"
+
+        # IF wall is ahead AND this situation was already visited
+        # THEN choose an alternative action
+        elif percept['wall_ahead'] and current_state in self.visited_cells:
+            action = "Left"
+
+        # IF wall is ahead THEN turn left
+        elif percept['wall_ahead']:
+            action = "Left"
+
+        # ELSE move forward
+        else:
+            action = "Right"
+
+        # Remember the last action
+        self.last_action = action
+
+        return action       
