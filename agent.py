@@ -102,11 +102,62 @@ class SearchAgent:
         return math.sqrt((x1 - x2) ** 2 + (y1 - y2) ** 2)
 
 
-# Testing
-agent = SearchAgent()
+    # Testing
+    agent = SearchAgent()
 
-start = (0, 0)
-goal = (3, 4)
+    start = (0, 0)
+    goal = (3, 4)
 
-print("Manhattan Distance:", agent.manhattan_distance(start, goal))
-print("Euclidean Distance:", agent.euclidean_distance(start, goal))
+    print("Manhattan Distance:", agent.manhattan_distance(start, goal))
+    print("Euclidean Distance:", agent.euclidean_distance(start, goal))
+
+
+    def astar_search(self, start_pos, goal_pos, walls, grid_size, heuristic_type='manhattan'):
+
+    priority_queue = []
+    reached_states = set()
+
+    # Starting node
+    g_cost = 0
+
+    if heuristic_type == 'manhattan':
+        h_cost = self.manhattan_distance(start_pos, goal_pos)
+    else:
+        h_cost = self.euclidean_distance(start_pos, goal_pos)
+
+    f_cost = g_cost + h_cost
+
+    heapq.heappush(
+        priority_queue,
+        (f_cost, g_cost, start_pos, [])
+    )
+
+    while priority_queue:
+
+        f_cost, g_cost, current_pos, path_taken = heapq.heappop(priority_queue)
+
+        if current_pos == goal_pos:
+            return path_taken
+
+        reached_states.add(current_pos)
+
+        # Expand neighbors
+        for next_pos, action in self.get_neighbors(current_pos, grid_size, walls):
+
+            if next_pos not in reached_states:
+
+                g_new = g_cost + 1
+
+                if heuristic_type == 'manhattan':
+                    h_new = self.manhattan_distance(next_pos, goal_pos)
+                else:
+                    h_new = self.euclidean_distance(next_pos, goal_pos)
+
+                f_new = g_new + h_new
+
+                heapq.heappush(
+                    priority_queue,
+                    (f_new, g_new, next_pos, path_taken + [action])
+                )
+
+    return []
