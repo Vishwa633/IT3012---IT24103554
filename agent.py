@@ -21,6 +21,12 @@ class SearchAgent:
         self.plan = []
         self.active_algo = 'AStar'
 
+        self.kb = KnowledgeBase()
+
+        self.kb.tell_rule(['TargetVisible', 'HasDust'], 'SafeToEngage')
+
+        self.kb.tell_rule(['SafeToEngage', 'BloodseekerMissing'], 'Retreat')
+
     # ---------------- BFS ----------------
     def bfs_search(self, start, goal, grid_size, walls):
 
@@ -197,6 +203,19 @@ class SearchAgent:
             ):
 
                 if next_pos not in reached_states:
+
+                    self.kb.clear_facts()
+
+                    title_percept = percept.get('title_percepts', {}).get(
+                        next_pos, []
+                    )
+                    for fact in title_percepts:
+                        self.kb.tell_fact(fact)
+
+                    self.kb.forward_chain()  
+
+                    if 'Retreat' in self.kb.facts:
+                        continue  
 
                     g_new = g_cost + 1
 
